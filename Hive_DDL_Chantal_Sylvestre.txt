@@ -1,0 +1,69 @@
+-----------------------------------------------
+--CIND 719 Assignment 1 DDL Chantal Sylvestre--
+-----------------------------------------------
+
+--Upload data onto VM, then copy files to Hadoop fs
+
+hadoop fs -put root/lab/station_data.csv /user/lab
+
+hadoop fs -put /root/lab/trip_data.csv /user/lab
+
+CREATE DATABASE bike;
+
+SHOW DATABASES;
+
+USE bike;
+
+--Create the tables
+
+CREATE TABLE bike.station(
+	station_id string,
+	station_name string,
+	lat string,
+	long string,
+	dockcount int,
+	landmark string,
+	installation string)
+row format delimited 
+fields terminated by ',' ;
+
+
+CREATE TABLE bike.trip(
+	trip_id int,
+	duration int,
+	start_date string,
+	start_station string,
+	start_terminal string,
+	end_date string,
+	end_station string,
+	end_terminal string,
+	bike_num string,
+	sub_type string,
+	zip int)
+row format delimited 
+fields terminated by ',' ;
+
+--Load data into tables
+
+LOAD DATA INPATH '/user/lab/station_data.csv'
+OVERWRITE INTO TABLE bike.station;
+
+DESCRIBE bike.station;
+
+LOAD DATA INPATH '/user/lab/trip_data.csv'
+OVERWRITE INTO TABLE bike.trip;
+
+DESCRIBE bike.trip;
+
+--Creating join table on start station and station name 
+--and removing stations that start and end at the same station.
+
+CREATE TABLE bike.joined AS
+SELECT *
+FROM bike.trip a JOIN bike.station b
+     ON a.start_station = b.station_name AND a.start_station <> a.end_station;
+
+
+
+
+

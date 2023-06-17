@@ -1,0 +1,148 @@
+
+
+--Made assignment2 directory on linux machine
+mkdir /home/assignment2
+
+-- Used filezilla to move tgz file to linux machine then extracted files
+tar xvf /home/lab/flight.tgz -C /home/assignment2/
+
+--Made a directory on HDFS
+hadoop fs -mkdir /user/pig/a2
+
+--Put extracted files onto HDFS
+
+hadoop fs -put /home/assignment2/*.* /user/pig/a2
+
+------------------
+----QUESTION 1----
+------------------
+
+--Load airlines dataset into pig
+
+airlines = LOAD '/user/pig/a2/airlines.dat' using PigStorage(',') AS (airline_id:chararray, airline_name:chararray, airline_alias:chararray, airline_iata:chararray, airline_icao:chararray, airline_call:chararray, airline_country:chararray, airline_active:chararray);
+
+--Filtered for air canada, case insensitive with or without a space using Regex
+
+air_canada = FILTER airlines BY airline_name MATCHES '(?i).*air.?canada.*';
+
+--Generate only the necessary fields
+
+air_canada2 = foreach air_canada GENERATE airline_id, airline_name;
+
+--Output
+
+dump air_canada2;
+
+
+
+------------------
+----QUESTION 2----
+------------------
+
+airports = LOAD '/user/pig/a2/airports.dat' using PigStorage(',') AS (airport_id:int, airport_name:chararray, airport_city:chararray, airport_country:chararray, airport_iata:chararray, airport_icao:chararray, airport_lat:float, airport_lon:float, airport_alt:chararray, airport_tz:chararray, airport_dst:chararray, airport_timezone:chararray, airport_source:chararray);
+
+airport_country = GROUP airports BY airport_country;
+
+airport_count = FOREACH airport_country GENERATE group AS country, COUNT(airports) AS count;
+
+airport_order = ORDER airport_count by count DESC;
+
+airport_top = limit airport_order 5;
+
+dump airport_top; 
+
+
+------------------
+----QUESTION 3----
+------------------
+
+
+routes = LOAD '/user/pig/a2/routes.dat' using PigStorage(',') AS (r_airline:chararray, r_airline_id:int, r_source:chararray, r_source_id:int, r_dst:chararray, r_dst_id:int, r_code:chararray, r_stops:chararray, r_eq:chararray);
+
+routes2 = foreach routes generate r_source, r_source_id, r_dst, r_dst_id;
+
+routes3 = distinct routes2;
+
+routes4 = limit routes3 5;
+
+dump routes4;
+
+
+------------------
+----QUESTION 4----
+------------------
+
+lat_lon = foreach airports generate airport_iata, airport_id, airport_name, airport_lat, airport_lon;
+		
+src_loc = join lat_lon by airport_iata, routes3 by r_source;
+
+src_loc2 = foreach src_loc generate lat_lon::airport_iata, lat_lon::airport_id as s_id, lat_lon::airport_name as s_name, lat_lon::airport_lat as lat1, lat_lon::airport_lon as lon1, routes3::r_dst, routes3::r_dst_id;
+
+dst_loc = join lat_lon by airport_iata, src_loc2 by r_dst;
+
+dst_src = foreach dst_loc generate lat_lon::airport_name as dst_name, lat_lon::airport_id as dst_id, lat_lon::airport_lat as lat2, lat_lon::airport_lon as lon2, src_loc2::s_name, src_loc2::s_id as s_id, src_loc2::lat1, src_loc2::lon1;
+
+d = foreach dst_src {
+	distance = SQRT((lat2 - lat1) * (lat2 - lat1) + (lon2 - lon1) * (lon2 - lon1)) * 111;
+	generate s_id, s_name, dst_id, dst_name, distance;};
+
+e = limit d 5;
+
+store d into '/user/pig/a2/routes_with_distances';
+
+
+
+
+
+
+
+distance = SQRT((lat2 - lat1) * (lat2 - lat1) + (lon2 - lon1) * (lon2 - lon1)) * 111
+
+
+
+
+
+src_loc = join lat_lon by airport_iata, routes3 by r_source;
+src_loc2 = foreach src_loc generate lat_lon::airport_iata, lat_lon::airport_id, lat_lon::airport_name as s_name, lat_lon::airport_lat as lat1, lat_lon::airport_lon as lon1, routes3::r_source;
+
+dst_loc = join lat_lon by airport_id, routes3 by r_dst_id;
+dst_loc2 = foreach src_loc generate lat_lon::airport_iata, lat_lon::airport_id, lat_lon::airport_name as d_name, lat_lon::airport_lat as lat2, lat_lon::airport_lon as lon2, routes3::r_dst;
+
+
+src_loc = join lat_lon by airport_iata, routes3 by r_source;
+src_loc2 = foreach src_loc generate lat_lon::airport_name as s_name, lat_lon::airport_lat as lat1, lat_lon::airport_lon as lon1, routes3::r_source;
+
+dst_loc = join lat_lon by airport_id, routes3 by r_dst_id;
+dst_loc2 = foreach src_loc generate lat_lon::airport_name as d_name, lat_lon::airport_lat as lat2, lat_lon::airport_lon as lon2, routes3::r_dst;
+
+
+
+combined = foreach routes4 generate  ;
+
+
+
+distance = SQRT((lat2 - lat1) * (lat2 - lat1) + (lon2 - lon1) * (lon2 - lon1)) * 111
+
+
+
+src_loc = join lat_lon by airport_id, dis by r_source_id;
+src_loc2 = foreach src_loc generate lat_lon::airport_id, lat_lon::airport_lat as lat1, lat_lon::airport_lon as lon1, dis::r_source, dis::r_source_id;
+
+dst_loc = join lat_lon by airport_id, dis by r_dst_id;
+dst_loc2 = foreach dst_loc generate lat_lon::airport_id, lat_lon::airport_lat2 as lat, lat_lon::airport_lon as lon2, dis::r_dst, dis::r_dst_id;
+
+euclidian = join dis by r_source_id 
+
+
+test = limit source_location 5;
+
+
+
+
+
+dis = FILTER routes BY NOT r_source IN (r_dst);
+
+dis_top5 = limit dis_routes 5;
+
+dump dis_top5
+
